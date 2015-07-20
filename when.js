@@ -824,14 +824,23 @@ define(function (require) {
 	} else if(MutationObs =
 		(typeof MutationObserver === 'function' && MutationObserver) ||
 			(typeof WebKitMutationObserver === 'function' && WebKitMutationObserver)) {
-		nextTick = (function(document, MutationObserver, drainQueue) {
-			var el = document.createElement('div');
-			new MutationObserver(drainQueue).observe(el, { attributes: true });
+		nextTick = (function(document, MutationObserver) {
+			var scheduled, i = 0;
+			var node = document.createTextNode('');
+			var o = new MutationObserver(run);
+			o.observe(node, { characterData: true });
 
-			return function() {
-				el.setAttribute('x', 'x');
-			};
-		}(document, MutationObs, drainQueue));
+			function run() {
+ 				var f = scheduled;
+ 				scheduled = void 0;
+ 				f();
+ 			}
+
+ 			return function (f) {
+ 				scheduled = f;
+ 				node.data = (i ^= 1);
+ 			};
+		}(document, MutationObs));
 	} else {
 		try {
 			// vert.x 1.x || 2.x
